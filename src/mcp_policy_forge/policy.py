@@ -69,7 +69,7 @@ def generated_policy_from_needs(needs: List[PermissionNeed], org_policy: Optiona
                 actions=need.actions,
                 paths=need.paths,
                 networks=need.networks,
-                reason="由 manifest/transcript 最小权限推断生成",
+                reason="Generated from manifest/transcript least-privilege inference",
                 source="generated",
             ).normalized()
         )
@@ -176,4 +176,3 @@ def escapes_repo(path: str, repo_root: str) -> bool:
 
 def is_write_path(need: PermissionNeed, path: str) -> bool:
     return ACTION_WRITE in need.actions and ACTION_READ not in need.actions
-

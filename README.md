@@ -4,6 +4,53 @@
 
 项目目标不是替代人工安全评审，而是把 MCP 工具权限从“口头约定”变成可审计、可 diff、可接入 CI 的策略文件。
 
+```mermaid
+flowchart LR
+  A["MCP tool manifest"] --> D["generate"]
+  B["Tool-call transcript"] --> D
+  C["Org baseline policy"] --> D
+  D --> E["Least-privilege policy"]
+  D --> F["Markdown report"]
+  D --> G["JUnit CI gate"]
+  E --> H["Policy diff in PR"]
+```
+
+## 30 秒看懂价值
+
+```bash
+mcp-policy-forge generate \
+  --manifest examples/manifest.json \
+  --transcript examples/transcript.jsonl \
+  --org-policy examples/org-policy.json \
+  --repo-root . \
+  --out-policy reports/policy.generated.json \
+  --out-md reports/report.md \
+  --junit reports/junit.xml
+
+mcp-policy-forge diff \
+  --old examples/org-policy.json \
+  --new reports/policy.generated.json \
+  --out-md reports/policy-diff.md
+```
+
+典型 diff 会把新增能力直接暴露给 reviewer：
+
+```text
+Added rules
+- allow repo.apply_patch actions=[write_file, read_file] paths=[src/app.py]
+- allow shell.run actions=[execute_command, read_file] paths=[.]
+- allow web.fetch actions=[network] networks=[docs.example.com]
+```
+
+这比“这个 MCP server 大概能读写仓库和联网”更适合安全评审：每个新增 action、路径和域名都能进入 PR diff 和 CI gate。完整展示见 [docs/showcase.md](docs/showcase.md)。
+
+## 适合谁
+
+- 正在发布 MCP server，需要最小权限策略和 CI gate 的开发者。
+- 在 Claude Desktop、Codex、ChatGPT Apps SDK 或自研 MCP host 中接入工具调用的团队。
+- 想在 PR 中 review “新增工具权限”而不只 review 代码 diff 的安全/平台团队。
+- 需要把 transcript 中出现过的路径、网络域名和命令执行能力转成可审计证据的人。
+
 ## 功能
 
 - 解析 MCP tool manifest，支持 `tools`、`mcpServers.*.tools` 等常见结构。
@@ -359,6 +406,21 @@ python -m unittest discover -s tests -v
 
 It highlights high-risk tools, path escapes, network access, file writes, command execution, and secret access. The project is designed as a local, dependency-free policy compiler for MCP security review.
 
+```mermaid
+flowchart LR
+  A["MCP tool manifest"] --> D["generate"]
+  B["Tool-call transcript"] --> D
+  C["Org baseline policy"] --> D
+  D --> E["Least-privilege policy"]
+  D --> F["Markdown report"]
+  D --> G["JUnit CI gate"]
+  E --> H["Policy diff in PR"]
+```
+
+## 30-Second Value
+
+Run `generate` to turn a manifest, representative transcript, and organization baseline into policy, Markdown, and JUnit outputs. Run `diff` in pull requests so reviewers can see newly allowed writes, command execution, network domains, and deny rules. See [docs/showcase.md](docs/showcase.md) for a concrete manifest-to-policy example.
+
 ## Features
 
 - Parse MCP tool manifests from `tools` or `mcpServers.*.tools`.
@@ -474,4 +536,3 @@ Recommended workflow:
 - Do not place real tokens or secrets in transcripts or policies.
 - Path checks complement, but do not replace, host-level sandboxing.
 - Risk scores are intended for prioritization, not compliance certification.
-

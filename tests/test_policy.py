@@ -111,7 +111,11 @@ class PolicyTests(unittest.TestCase):
         policy = generated_policy_from_needs([PermissionNeed(tool="x", actions=[ACTION_READ])], org)
         self.assertEqual(policy.rules[0].effect, "deny")
 
+    def test_generated_policy_reason_is_preview_safe(self):
+        policy = generated_policy_from_needs([PermissionNeed(tool="x", actions=[ACTION_READ])])
+        generated = [rule for rule in policy.rules if rule.source == "generated"][0]
+        self.assertEqual(generated.reason, "Generated from manifest/transcript least-privilege inference")
+
 
 if __name__ == "__main__":
     unittest.main()
-
