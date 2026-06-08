@@ -1,0 +1,66 @@
+{
+  "tools": [
+    {
+      "name": "repo.read_file",
+      "description": "Read a file from the repository workspace",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Path to read",
+            "examples": ["src/app.py"]
+          }
+        },
+        "required": ["path"]
+      }
+    },
+    {
+      "name": "repo.apply_patch",
+      "description": "Edit or create files in the repository",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "target_path": {
+            "type": "string",
+            "examples": ["src/app.py"]
+          },
+          "patch": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "name": "web.fetch",
+      "description": "Fetch a URL over HTTPS",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "examples": ["https://docs.example.com/index.html"]
+          }
+        }
+      }
+    },
+    {
+      "name": "shell.run",
+      "description": "Run a shell command in a working directory",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": "string"
+          },
+          "cwd": {
+            "type": "string",
+            "examples": ["."]
+          }
+        },
+        "required": ["command"]
+      }
+    }
+  ]
+}
+

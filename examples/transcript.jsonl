@@ -1,0 +1,5 @@
+{"type":"tool_call","name":"repo.read_file","arguments":{"path":"README.md"}}
+{"type":"tool_call","name":"repo.apply_patch","arguments":{"target_path":"src/app.py","patch":"*** Begin Patch\n*** End Patch"}}
+{"type":"tool_call","name":"web.fetch","arguments":{"url":"https://docs.example.com/index.html"}}
+{"type":"tool_call","name":"shell.run","arguments":{"command":"python -m unittest","cwd":"."}}
+

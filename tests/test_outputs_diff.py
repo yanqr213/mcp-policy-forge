@@ -1,0 +1,64 @@
+import json
+import unittest
+
+from mcp_policy_forge.diff import diff_policies, diff_to_markdown
+from mcp_policy_forge.models import AnalysisReport, Finding, PermissionNeed, Policy, PolicyRule, RiskResult, ToolSpec
+from mcp_policy_forge.outputs import report_to_junit, report_to_markdown
+
+
+class OutputsDiffTests(unittest.TestCase):
+    def report(self):
+        return AnalysisReport(
+            policy=Policy(rules=[PolicyRule(effect="allow", tools=["x"], actions=["read_file"])]),
+            needs=[PermissionNeed(tool="x", actions=["read_file"], paths=["README.md"])],
+            risks=[RiskResult(tool="x", score=10, level="low")],
+            findings=[Finding(severity="warning", code="W", message="warn")],
+            tools=[ToolSpec(name="x")],
+        )
+
+    def test_markdown_contains_sections(self):
+        md = report_to_markdown(self.report())
+        self.assertIn("# MCP Policy Forge Report", md)
+        self.assertIn("## 权限需求", md)
+
+    def test_markdown_embeds_policy_json(self):
+        md = report_to_markdown(self.report())
+        self.assertIn('"rules"', md)
+
+    def test_junit_contains_testsuite(self):
+        xml = report_to_junit(self.report())
+        self.assertIn("<testsuite", xml)
+        self.assertIn("tests=", xml)
+
+    def test_junit_error_is_failure(self):
+        report = self.report()
+        report.findings = [Finding(severity="error", code="E", message="bad", detail={"x": 1})]
+        xml = report_to_junit(report)
+        self.assertIn("<failure", xml)
+
+    def test_junit_escapes_message(self):
+        report = self.report()
+        report.findings = [Finding(severity="error", code="E", message="<bad&>")]
+        xml = report_to_junit(report)
+        self.assertIn("&lt;bad&amp;&gt;", xml)
+
+    def test_diff_added_rule(self):
+        result = diff_policies({"rules": []}, {"rules": [{"effect": "allow", "tools": ["x"], "actions": ["read_file"]}]})
+        self.assertEqual(len(result["added"]), 1)
+
+    def test_diff_removed_rule(self):
+        result = diff_policies({"rules": [{"effect": "allow", "tools": ["x"], "actions": ["read_file"]}]}, {"rules": []})
+        self.assertEqual(len(result["removed"]), 1)
+
+    def test_diff_markdown_mentions_added(self):
+        md = diff_to_markdown({"added": [{"effect": "allow", "tools": ["x"], "actions": [], "paths": [], "networks": []}], "removed": [], "changed": []})
+        self.assertIn("新增规则", md)
+
+    def test_report_to_dict_json_serializable(self):
+        payload = self.report().to_dict()
+        self.assertIn('"policy"', json.dumps(payload))
+
+
+if __name__ == "__main__":
+    unittest.main()
+

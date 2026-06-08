@@ -1,0 +1,26 @@
+{
+  "version": "2026-06",
+  "defaults": {
+    "effect": "deny"
+  },
+  "metadata": {
+    "owner": "security-team",
+    "purpose": "example baseline"
+  },
+  "rules": [
+    {
+      "effect": "deny",
+      "tools": ["shell.*"],
+      "actions": ["secret_access"],
+      "reason": "Shell tools must not receive raw secrets"
+    },
+    {
+      "effect": "allow",
+      "tools": ["web.fetch"],
+      "actions": ["network"],
+      "networks": ["docs.example.com"],
+      "reason": "Allow documentation fetches"
+    }
+  ]
+}
+
