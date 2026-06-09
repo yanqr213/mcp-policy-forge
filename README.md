@@ -24,6 +24,7 @@ mcp-policy-forge generate \
   --org-policy examples/org-policy.json \
   --repo-root . \
   --out-policy reports/policy.generated.json \
+  --out-summary reports/summary.md \
   --out-md reports/report.md \
   --junit reports/junit.xml
 
@@ -43,6 +44,8 @@ Added rules
 ```
 
 这比“这个 MCP server 大概能读写仓库和联网”更适合安全评审：每个新增 action、路径和域名都能进入 PR diff 和 CI gate。完整展示见 [docs/showcase.md](docs/showcase.md)。
+
+如果你在 GitHub Actions 里使用，可以把 `reports/summary.md` 追加到 `$GITHUB_STEP_SUMMARY`，或者用 `gh pr comment --body-file reports/summary.md` 发到 PR conversation。摘要会先给出 READY/REVIEW/BLOCK 决策、高风险工具和 findings，再把完整生成策略放进可展开的 `<details>`。
 
 ## 适合谁
 
@@ -106,6 +109,7 @@ mcp-policy-forge generate \
   --out-json reports/report.json \
   --out-policy reports/policy.generated.json \
   --out-md reports/report.md \
+  --out-summary reports/summary.md \
   --junit reports/junit.xml \
   --fail-on never
 ```
@@ -152,6 +156,7 @@ mcp-policy-forge diff \
 - `--out-json`: 输出完整机器报告。
 - `--out-policy`: 输出生成后的 policy JSON。
 - `--out-md`: 输出 Markdown 审计报告。
+- `--out-summary`: 输出紧凑 Markdown，适合 GitHub Actions summary 或 PR 评论。
 - `--junit`: 输出 JUnit XML。
 - `--fail-on`: `never`、`violations`、`medium`、`high`、`critical`。
 
@@ -314,6 +319,8 @@ JSON 报告包含：
 
 Markdown 报告包含摘要、高风险工具、权限需求、发现问题和生成策略。
 
+Summary 报告更短，适合 CI 页面和 PR conversation：顶部给出 READY/REVIEW/BLOCK、工具数量、高风险数量和 findings，完整生成策略放在 `<details>` 折叠区。
+
 JUnit XML 可直接上传到 CI 测试报告系统。`severity=error` 的 finding 会变成 failure。
 
 ## CI 集成
@@ -333,6 +340,17 @@ jobs:
       - uses: actions/setup-python@v5
       - run: python -m pip install -e .
       - run: python -m unittest discover -s tests -v
+      - run: |
+          mcp-policy-forge generate \
+            --manifest examples/manifest.json \
+            --transcript examples/transcript.jsonl \
+            --org-policy examples/org-policy.json \
+            --repo-root . \
+            --out-policy reports/policy.generated.json \
+            --out-summary reports/summary.md \
+            --junit reports/junit.xml \
+            --fail-on never
+          cat reports/summary.md >> "$GITHUB_STEP_SUMMARY"
 ```
 
 策略检查可在你的项目 CI 中添加：
@@ -343,6 +361,7 @@ mcp-policy-forge check \
   --transcript artifacts/mcp-transcript.jsonl \
   --org-policy security/mcp-policy.json \
   --repo-root . \
+  --out-summary artifacts/mcp-policy-summary.md \
   --junit artifacts/mcp-policy-junit.xml \
   --fail-on high
 ```
@@ -352,6 +371,7 @@ mcp-policy-forge check \
 - 在 MCP server 发布前，将 tools manifest 纳入仓库。
 - 在开发或评审过程中保存代表性 transcript。
 - 用 `generate` 生成初始 policy，再由安全团队收编到组织策略。
+- 用 `--out-summary` 把审计结果写入 GitHub Actions summary 或 PR 评论。
 - 在 PR 中用 `diff` 展示新增工具权限。
 - 在 CI 中使用 `check --fail-on high` 或更严格阈值。
 - 对命令执行、写文件、网络访问工具设置显式 allow，并优先添加 deny 基线。
@@ -378,7 +398,7 @@ src/mcp_policy_forge/
   policy.py       # 策略模型、合并、校验、匹配
   risk.py         # 风险评分
   diff.py         # policy diff
-  outputs.py      # Markdown/JUnit 输出
+  outputs.py      # Markdown/Summary/JUnit 输出
 tests/            # unittest 测试
 examples/         # 示例输入
 ```
@@ -402,7 +422,7 @@ python -m unittest discover -s tests -v
 
 # English Documentation
 
-`mcp-policy-forge` is a least-privilege policy generator and validator for AI / MCP / security / developer-tool workflows. It reads MCP tool manifests, JSON schemas, sample transcripts, repository path rules, and organization policies, then emits human-readable Markdown, machine-readable JSON, and CI-friendly JUnit XML.
+`mcp-policy-forge` is a least-privilege policy generator and validator for AI / MCP / security / developer-tool workflows. It reads MCP tool manifests, JSON schemas, sample transcripts, repository path rules, and organization policies, then emits human-readable Markdown, compact GitHub-ready summaries, machine-readable JSON, and CI-friendly JUnit XML.
 
 It highlights high-risk tools, path escapes, network access, file writes, command execution, and secret access. The project is designed as a local, dependency-free policy compiler for MCP security review.
 
@@ -419,7 +439,7 @@ flowchart LR
 
 ## 30-Second Value
 
-Run `generate` to turn a manifest, representative transcript, and organization baseline into policy, Markdown, and JUnit outputs. Run `diff` in pull requests so reviewers can see newly allowed writes, command execution, network domains, and deny rules. See [docs/showcase.md](docs/showcase.md) for a concrete manifest-to-policy example.
+Run `generate` to turn a manifest, representative transcript, and organization baseline into policy, Markdown, GitHub summary, and JUnit outputs. Run `diff` in pull requests so reviewers can see newly allowed writes, command execution, network domains, and deny rules. See [docs/showcase.md](docs/showcase.md) for a concrete manifest-to-policy example.
 
 ## Features
 
@@ -431,7 +451,7 @@ Run `generate` to turn a manifest, representative transcript, and organization b
 - Default deny, deny takes precedence.
 - Detect repository path escapes when `--repo-root` is provided.
 - Score risk as low / medium / high / critical.
-- Emit JSON reports, Markdown reports, generated policy JSON, and JUnit XML.
+- Emit JSON reports, Markdown reports, GitHub-ready summary Markdown, generated policy JSON, and JUnit XML.
 - Validate policies and diff policy versions.
 - Uses only the Python standard library. Supports Python 3.9+.
 
@@ -460,6 +480,7 @@ mcp-policy-forge generate \
   --out-json reports/report.json \
   --out-policy reports/policy.generated.json \
   --out-md reports/report.md \
+  --out-summary reports/summary.md \
   --junit reports/junit.xml
 ```
 
@@ -526,6 +547,7 @@ Recommended workflow:
 - Capture representative transcripts during development or review.
 - Generate an initial least-privilege policy with `generate`.
 - Review and promote the generated policy into an organization baseline.
+- Publish `--out-summary` to `$GITHUB_STEP_SUMMARY` or a PR comment for quick reviewer triage.
 - Use `diff` in pull requests to review permission changes.
 - Use `check` in CI with a threshold such as `--fail-on high`.
 

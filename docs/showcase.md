@@ -42,6 +42,7 @@ mcp-policy-forge generate \
   --org-policy examples/org-policy.json \
   --repo-root . \
   --out-policy reports/policy.generated.json \
+  --out-summary reports/summary.md \
   --out-md reports/report.md \
   --junit reports/junit.xml
 ```
@@ -67,6 +68,13 @@ mcp-policy-forge generate \
   "actions": ["secret_access"],
   "reason": "Shell tools must not receive raw secrets"
 }
+```
+
+`reports/summary.md` 适合直接写入 GitHub Actions summary 或 PR 评论：
+
+```bash
+cat reports/summary.md >> "$GITHUB_STEP_SUMMARY"
+gh pr comment 123 --body-file reports/summary.md
 ```
 
 ## PR 里看 diff
@@ -115,6 +123,7 @@ mcp-policy-forge generate \
   --org-policy examples/org-policy.json \
   --repo-root . \
   --out-policy reports/policy.generated.json \
+  --out-summary reports/summary.md \
   --out-md reports/report.md \
   --junit reports/junit.xml
 
@@ -125,3 +134,5 @@ mcp-policy-forge diff \
 ```
 
 Use the diff in code review to discuss new file writes, command execution, network domains, and secret-handling deny rules.
+
+Use `reports/summary.md` as a GitHub Actions summary or PR comment when reviewers need a compact READY/REVIEW/BLOCK decision with the full generated policy hidden in an expandable details block.

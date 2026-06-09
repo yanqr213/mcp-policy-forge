@@ -47,6 +47,14 @@ class CliTests(unittest.TestCase):
         self.assertIn("MCP Policy Forge", md.read_text(encoding="utf-8"))
         self.assertIn("<testsuite", junit.read_text(encoding="utf-8"))
 
+    def test_generate_writes_summary(self):
+        summary = self.root / "summary.md"
+        code = self.run_cli(["generate", "--manifest", str(self.manifest), "--transcript", str(self.transcript), "--out-summary", str(summary), "--fail-on", "never"])
+        self.assertEqual(code, EXIT_OK)
+        text = summary.read_text(encoding="utf-8")
+        self.assertIn("MCP Policy Forge Summary", text)
+        self.assertIn("<details>", text)
+
     def test_check_fail_on_high_risk(self):
         code = self.run_cli(["check", "--manifest", str(self.manifest), "--transcript", str(self.transcript), "--fail-on", "medium"])
         self.assertEqual(code, EXIT_FAILED)

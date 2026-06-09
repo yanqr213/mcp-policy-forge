@@ -20,4 +20,30 @@ jobs:
         run: python -m pip install -e .
       - name: Run tests
         run: python -m unittest discover -s tests -v
-
+      - name: CLI smoke
+        run: |
+          mcp-policy-forge generate \
+            --manifest examples/manifest.json \
+            --transcript examples/transcript.jsonl \
+            --org-policy examples/org-policy.json \
+            --repo-root . \
+            --out-json reports/report.json \
+            --out-policy reports/policy.generated.json \
+            --out-md reports/report.md \
+            --out-summary reports/summary.md \
+            --junit reports/junit.xml \
+            --fail-on never
+          python -m json.tool reports/report.json > /dev/null
+          python -m json.tool reports/policy.generated.json > /dev/null
+          test -s reports/report.md
+          test -s reports/summary.md
+          test -s reports/junit.xml
+          mcp-policy-forge validate --policy reports/policy.generated.json
+          mcp-policy-forge diff \
+            --old examples/org-policy.json \
+            --new reports/policy.generated.json \
+            --out-json reports/policy-diff.json \
+            --out-md reports/policy-diff.md
+          python -m json.tool reports/policy-diff.json > /dev/null
+          test -s reports/policy-diff.md
+          cat reports/summary.md >> "$GITHUB_STEP_SUMMARY"

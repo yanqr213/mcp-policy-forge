@@ -8,7 +8,7 @@ from typing import Optional
 from .diff import diff_policies, diff_to_markdown
 from .engine import analyze
 from .io import InputError, load_json_file, write_json, write_text
-from .outputs import report_to_junit, report_to_markdown
+from .outputs import report_to_junit, report_to_markdown, report_to_summary
 from .policy import parse_policy, validate_policy
 
 EXIT_OK = 0
@@ -46,6 +46,7 @@ def add_common_generate_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--out-json", help="输出机器可读 JSON 报告")
     parser.add_argument("--out-policy", help="仅输出生成后的 policy JSON")
     parser.add_argument("--out-md", help="输出 Markdown 报告")
+    parser.add_argument("--out-summary", help="输出适合 GitHub Actions summary 或 PR 评论的紧凑 Markdown")
     parser.add_argument("--junit", help="输出 JUnit XML")
     parser.add_argument("--fail-on", choices=["never", "violations", "medium", "high", "critical"], default="violations", help="check/generate 的失败阈值")
 
@@ -80,9 +81,11 @@ def run_generate(args: argparse.Namespace) -> int:
         write_json(args.out_policy, report.policy.to_dict())
     if args.out_md:
         write_text(args.out_md, report_to_markdown(report))
+    if args.out_summary:
+        write_text(args.out_summary, report_to_summary(report))
     if args.junit:
         write_text(args.junit, report_to_junit(report))
-    if not any([args.out_json, args.out_policy, args.out_md, args.junit]):
+    if not any([args.out_json, args.out_policy, args.out_md, args.out_summary, args.junit]):
         print(json.dumps(report.to_dict(), ensure_ascii=False, indent=2, sort_keys=True))
     return EXIT_FAILED if should_fail(report, args.fail_on) else EXIT_OK
 
@@ -117,4 +120,3 @@ def run_diff(args: argparse.Namespace) -> int:
     if not args.out_json and not args.out_md:
         print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
     return EXIT_OK
-
